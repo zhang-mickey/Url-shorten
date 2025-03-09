@@ -1,0 +1,67 @@
+services:
+  db_services:
+    image: postgres:15
+    container_name: db_services
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: WSCBS_assignment
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d WSCBS_assignment" ]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+
+  auth_service:
+    build:
+      context: ./auth_service
+    container_name: auth_service
+    restart: always
+    depends_on:
+      db_services:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:123456@db_services:5432/WSCBS_assignment"
+    ports:
+      - "5001:5001"
+    networks:
+      - backend
+
+  url_shorten_service:
+    build:
+      context: ./url_shorten_service
+    container_name: url_shorten_service
+    restart: always
+    depends_on:
+      db_services:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:123456@db_services:5432/WSCBS_assignment"
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+  nginx:
+      image: nginx:latest
+      container_name: nginx_proxy
+      ports:
+        - "8080:8080"
+      volumes:
+      - "./nginx.conf:/etc/nginx/nginx.conf:ro"
+      depends_on:
+        - auth_service
+        - url_shorten_service
+      networks:
+        - backend
+volumes:
+  db_data:
+
+networks:
+  backend:
