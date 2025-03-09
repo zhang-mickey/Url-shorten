@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-services
+  labels:
+    app: db-services
+spec:
+  serviceName: db-services-headless  # This is a headless service for StatefulSet
+  replicas: 1  # Number of replicas
+  selector:
+    matchLabels:
+      app: db-services
+  template:
+    metadata:
+      labels:
+        app: db-services
+    spec:
+      containers:
+        - name: db
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: db-storage
+              mountPath: /var/lib/postgresql/data  # Mount the PVC here
+  volumeClaimTemplates:
+    - metadata:
+        name: db-storage  # Name of the PVC
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi  # Size of PVC
+        storageClassName: local-storage  # Your storage class

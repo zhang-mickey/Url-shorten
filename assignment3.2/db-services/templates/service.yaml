@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "db-services.fullname" . }}  # Keep this for dynamic naming
+  labels:
+    {{- include "db-services.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}  # Ensure this is ClusterIP or another type as needed
+  ports:
+    - port: {{ .Values.service.port }}  # Port to expose, probably 5432 for PostgreSQL
+      targetPort: 5432  # Ensure this is set to the port your database listens on
+      protocol: TCP
+      name: db  # Updated to reflect database usage, you can leave it as 'http' if it's non-database
+  selector:
+    {{- include "db-services.selectorLabels" . | nindent 4 }}  # Ensures the service selects the correct StatefulSet pods
